@@ -1,0 +1,34 @@
+# Git 仓库元数据（减小构建上下文）
+.git
+.gitignore
+.github
+
+# 文档
+README.md
+*.md
+docs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# Go 测试与覆盖率
+*_test.go
+*.test
+*.out
+coverage.txt
+
+# 自定义静态资源（通过 volume 挂载，不打入镜像）
+custom-static/
+
+# 日志
+*.log
+logs/
+
+# 临时文件
+tmp/

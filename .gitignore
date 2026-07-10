@@ -1,0 +1,37 @@
+# Go 构建产物
+downloader
+/downloader
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go 测试与覆盖率
+*.test
+*.out
+coverage.txt
+
+# Go 工作区
+go.work
+go.work.sum
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 临时下载文件
+/tmp/ytdlp-downloads/
+
+# 自定义静态资源（用户挂载）
+custom-static/
+
+# 日志
+*.log
+logs/

@@ -1,0 +1,49 @@
+# ============================================================
+# 全平台下载器 - Docker Compose 编排文件
+# 一键启动：docker compose up -d --build
+# ============================================================
+services:
+  downloader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quanpingtai-xiazaiqi
+    restart: unless-stopped
+    ports:
+      # HTTPS 端口（主服务，供 Cloudflare 回源 / 域名访问）
+      - "443:443"
+      # HTTP 端口（自动跳转 HTTPS，兼容直接 IP 访问）
+      - "80:80"
+    volumes:
+      # 持久化 yt-dlp 缓存
+      - ytdlp-cache:/home/appuser/.cache/yt-dlp
+      # 持久化自签证书（避免每次重启重新生成）
+      - certs:/app/certs
+      # 持久化 cookies 文件（用户上传的登录态，重启不丢失）
+      - cookies:/app/cookies
+      # 挂载自定义静态资源（可选）
+      # - ./custom-static:/app/static:ro
+    environment:
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "curl", "-fsSk", "https://localhost:443/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+
+volumes:
+  ytdlp-cache:
+    driver: local
+  certs:
+    driver: local
+  cookies:
+    driver: local

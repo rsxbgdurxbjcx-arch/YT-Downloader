@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>YT下载器</title>
+<style>
+  /* 全局重置，消除默认边距，防止页面被撑开导致滚动 */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  /* 引入您上传的字体附件 */
+  @font-face {
+    font-family: 'XianSheng';
+    src: url('XianSheng-GaiZenMeChengNi-2.ttf') format('truetype');
+  }
+
+  /* 锁死高度，禁止一切滚动 */
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden; 
+  }
+
+  /* 全局字体与默认字体颜色配置 */
+  body, input, button {
+    font-family: 'XianSheng', sans-serif;
+    color: #ff87a1;
+  }
+
+  /* ================= 之前提取的样式 ================= */
+  /* 固定背景层 - 解决手机端background-attachment: fixed失效问题 */
+  body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('123.jpg') no-repeat center center;
+    background-size: cover;
+    z-index: -1;
+  }
+  /* 樱花画布 - 全屏覆盖 */
+  #sakura-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  /* 内容层 */
+  .content-layer {
+    position: relative;
+    z-index: 10;
+    /* 采用 height: 100% 代替 100vh，完美贴合手机一屏 */
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  /* 无背景文本区域 */
+  .text-section {
+    padding: 18px 24px;
+    margin: 16px 0;
+    position: relative;
+  }
+  /* 手机端适配 */
+  @media (max-width: 768px) {
+    .text-section { padding: 14px 16px; }
+  }
+
+  /* ================= 新增的需求样式 ================= */
+  h1 {
+    font-size: 2.8rem;
+    font-weight: normal;
+    margin-bottom: 25px;
+    letter-spacing: 2px;
+  }
+
+  .input-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+    width: 100%;
+  }
+
+  /* 边框窄一点，边框颜色采用#7bd38c */
+  input[type="text"] {
+    width: 320px;
+    max-width: 85vw;
+    padding: 10px 15px;
+    border: 1px solid #7bd38c;
+    background: rgba(255, 255, 255, 0.5); 
+    border-radius: 6px;
+    font-size: 1.2rem;
+    outline: none;
+    transition: box-shadow 0.3s ease;
+  }
+  
+  input[type="text"]:focus {
+    box-shadow: 0 0 8px rgba(123, 211, 140, 0.6);
+  }
+
+  /* 下载按钮：不要样式，仅改变颜色 */
+  .download-btn {
+    background: none;
+    border: none;
+    color: #ffb100;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+  }
+  
+  .download-btn:hover {
+    opacity: 0.8;
+  }
+
+  /* 由yt-dlp驱动：小字号，特定颜色 */
+  .driver-text {
+    font-size: 0.85rem;
+    color: #34bdc8;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="sakura-canvas"></canvas>
+
+<div class="content-layer">
+  <h1>YT下载器</h1>
+  
+  <div class="input-area">
+    <input type="text" placeholder="在此粘贴视频或音频链接...">
+    <button class="download-btn">下载</button>
+  </div>
+  
+  <div class="driver-text">由yt-dlp驱动</div>
+</div>
+
+<script>
+// ==================== 强制刷新背景图片（防止缓存）====================
+const beforeEl = document.createElement('style');
+beforeEl.textContent = "body::before { background-image: url('123.jpg?v=" + Date.now() + "') !important; }";
+document.head.appendChild(beforeEl);
+
+// ==================== 超真实多层次樱花雨 Canvas ====================
+const canvas = document.getElementById('sakura-canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// 根据设备性能调整樱花数量
+const isMobile = window.innerWidth < 768;
+const SAKURA_COUNT = isMobile ? 80 : 200;
+const sakuraArray = [];
+
+class Sakura {
+  constructor() {
+    this.reset(true);
+  }
+
+  reset(isInitial = false) {
+    this.x = Math.random() * canvas.width;
+    this.y = isInitial ? Math.random() * canvas.height : -20;
+
+    const rand = Math.random();
+    if (rand < 0.6) {
+      this.layer = 0;
+      this.baseSize = Math.random() * 3 + 3;
+      this.speedY = Math.random() * 0.8 + 0.5;
+      this.speedX = Math.random() * 1.0 + 0.5;
+      this.opacity = Math.random() * 0.3 + 0.4;
+      this.blur = 0;
+    } else if (rand < 0.95) {
+      this.layer = 1;
+      this.baseSize = Math.random() * 5 + 6;
+      this.speedY = Math.random() * 1.2 + 1.0;
+      this.speedX = Math.random() * 1.2 + 0.8;
+      this.opacity = Math.random() * 0.3 + 0.7;
+      this.blur = 0;
+    } else {
+      this.layer = 2;
+      this.baseSize = Math.random() * 10 + 15;
+      this.speedY = Math.random() * 2.0 + 2.0;
+      this.speedX = Math.random() * 2.0 + 1.5;
+      this.opacity = Math.random() * 0.2 + 0.8;
+      this.blur = 0;
+    }
+
+    this.angle = Math.random() * Math.PI * 2;
+    this.angleSpeed = (Math.random() * 0.02 + 0.01) * (Math.random() > 0.5 ? 1 : -1);
+    this.rotateX = Math.random() * Math.PI;
+    this.rotateXSpeed = Math.random() * 0.03 + 0.02;
+
+    const pinkTone = Math.floor(Math.random() * 15);
+    this.colorStart = `rgba(255, ${215 + pinkTone}, ${225 + pinkTone}, ${this.opacity})`;
+    this.colorEnd = `rgba(254, ${185 + pinkTone}, ${200 + pinkTone}, ${this.opacity})`;
+  }
+
+  update() {
+    this.x += this.speedX;
+    this.y += this.speedY;
+    this.angle += this.angleSpeed;
+    this.rotateX += this.rotateXSpeed;
+    this.x += Math.sin(this.y / 30) * 0.3;
+
+    if (this.y > canvas.height + 20 || this.x > canvas.width + 20 || this.x < -20) {
+      this.reset(false);
+    }
+  }
+
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle);
+    ctx.scale(1, Math.sin(this.rotateX));
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, this.baseSize * 1.5);
+    gradient.addColorStop(0, this.colorStart);
+    gradient.addColorStop(1, this.colorEnd);
+    ctx.fillStyle = gradient;
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(-this.baseSize * 0.9, this.baseSize * 0.1, -this.baseSize * 1.1, this.baseSize * 1.1, -this.baseSize * 0.3, this.baseSize * 1.5);
+    ctx.lineTo(0, this.baseSize * 1.25);
+    ctx.lineTo(this.baseSize * 0.3, this.baseSize * 1.5);
+    ctx.bezierCurveTo(this.baseSize * 1.1, this.baseSize * 1.1, this.baseSize * 0.9, this.baseSize * 0.1, 0, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+function init() {
+  for (let i = 0; i < SAKURA_COUNT; i++) {
+    sakuraArray.push(new Sakura());
+  }
+  sakuraArray.sort((a, b) => a.layer - b.layer);
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  sakuraArray.forEach(sakura => {
+    sakura.update();
+    sakura.draw();
+  });
+  requestAnimationFrame(animate);
+}
+
+init();
+animate();
+</script>
+</body>
+</html>
