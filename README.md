@@ -105,7 +105,7 @@ ports:
 
 证书持久化到 Docker volume `certs`，重启容器不会重新生成。
 
-## 一键卸载 YT下载器
+## 卸载 YT下载器
 
 ```bash
 # 进入项目目录
@@ -128,7 +128,7 @@ cd /opt && rm -rf YT-Downloader
 docker system prune -a -f
 ```
 
-## 一键更新容器内的 yt-dlp 与 ffmpeg
+## 更新容器内的 yt-dlp 与 ffmpeg
 
 yt-dlp 与 ffmpeg 更新频繁（YouTube 等平台经常变更接口），建议定期更新。
 
